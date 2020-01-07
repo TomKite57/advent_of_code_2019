@@ -1,12 +1,15 @@
 """
-Advent of Code 2019 - Day 5
+Advent of Code 2019 - Day 7
 
 Introduction
 
 Author: Tom Kite
 """
 
-file_name = "501.dat"
+from itertools import permutations
+
+file_name = "701.dat"
+PHASE_SETTINGS = range(5)
 
 
 class int_code():
@@ -57,7 +60,8 @@ class int_code():
         return
 
     def _code3(self, mode=None):
-        self.code[self.code[self.index+1]] = self.ID
+        self.code[self.code[self.index+1]] = int(self.ID[0])
+        self.ID.pop(0)
         self.index += 2
         return
 
@@ -135,6 +139,30 @@ def read_data(file_name):
 
 if __name__ == "__main__":
     input_file = read_data(file_name)
-    my_int_code = int_code(input_file, 5)
-    my_int_code.run()
-    my_int_code.show()
+    phase_combinations = permutations(PHASE_SETTINGS)
+    results = {}
+
+    for inputIDs in phase_combinations:
+        thrusterA = int_code(input_file, [inputIDs[0], "0"])
+        thrusterA.run()
+        next_input = thrusterA.return_value
+
+        thrusterB = int_code(input_file, [inputIDs[1], next_input])
+        thrusterB.run()
+        next_input = thrusterB.return_value
+
+        thrusterC = int_code(input_file, [inputIDs[2], next_input])
+        thrusterC.run()
+        next_input = thrusterC.return_value
+
+        thrusterD = int_code(input_file, [inputIDs[3], next_input])
+        thrusterD.run()
+        next_input = thrusterD.return_value
+
+        thrusterE = int_code(input_file, [inputIDs[4], next_input])
+        thrusterE.run()
+
+        results[inputIDs] = thrusterE.return_value
+
+    maxID = max(results, key=results.get)
+    print("Max value found at %s with %s" % (maxID, results[maxID]))
