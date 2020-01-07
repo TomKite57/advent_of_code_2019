@@ -7,9 +7,11 @@ Author: Tom Kite
 """
 
 from itertools import permutations
+import copy
 
 file_name = "701.dat"
-PHASE_SETTINGS = range(5)
+PHASE_SETTINGS = range(5, 10)
+NUM_OF_THRUSTERS = 5
 
 
 class int_code():
@@ -21,9 +23,10 @@ class int_code():
     iterations = 0
     guide = {}
 
-    def __init__(self, input_code, input_ID):
+    def __init__(self, input_code=[], input_ID=0):
         self.code = input_code
         self.ID = input_ID
+        self.index = 0
         self.guide = {
                 "01": self._code1,
                 "02": self._code2,
@@ -68,6 +71,7 @@ class int_code():
     def _code4(self, mode):
         self.return_value = self.data_at(self.index+1, mode[0])
         self.index += 2
+        self.success = True
         return
 
     def _code5(self, mode):
@@ -101,10 +105,11 @@ class int_code():
         return
 
     def _code99(self, mode=None):
-        self.success = True
+        self.success = "99"
         return
 
     def run(self):
+        self.success = None
         while(self.success is None):
             self.iterations += 1
             opcode, mode = get_opcode(self.code[self.index])
@@ -119,6 +124,7 @@ class int_code():
         print("Result: %s" % self.return_value)
         print("Code at 0: %s" % self.code[0])
         print("Number of iterations: %s" % self.iterations)
+        print("Input ID: %s" % self.ID)
         return
 
 
@@ -137,32 +143,26 @@ def read_data(file_name):
     return output
 
 
+def run_feedback_circuit(program, phases):
+    current_signal = 0
+    thrusters = [int_code(copy.copy(program), [phase]) for phase in phases]
+
+    while (thrusters[-1].success != "99"):
+        for thruster in thrusters:
+            thruster.ID.append(current_signal)
+            thruster.run()
+            current_signal = thruster.return_value
+    return current_signal
+
+
 if __name__ == "__main__":
     input_file = read_data(file_name)
     phase_combinations = permutations(PHASE_SETTINGS)
     results = {}
 
-    for inputIDs in phase_combinations:
-        thrusterA = int_code(input_file, [inputIDs[0], "0"])
-        thrusterA.run()
-        next_input = thrusterA.return_value
-
-        thrusterB = int_code(input_file, [inputIDs[1], next_input])
-        thrusterB.run()
-        next_input = thrusterB.return_value
-
-        thrusterC = int_code(input_file, [inputIDs[2], next_input])
-        thrusterC.run()
-        next_input = thrusterC.return_value
-
-        thrusterD = int_code(input_file, [inputIDs[3], next_input])
-        thrusterD.run()
-        next_input = thrusterD.return_value
-
-        thrusterE = int_code(input_file, [inputIDs[4], next_input])
-        thrusterE.run()
-
-        results[inputIDs] = thrusterE.return_value
+    for phases in phase_combinations:
+        signal = run_feedback_circuit(input_file, phases)
+        results[phases] = signal
 
     maxID = max(results, key=results.get)
     print("Max value found at %s with %s" % (maxID, results[maxID]))
